@@ -25,7 +25,7 @@ def train(
     states, actions, behavior_action_probs, rewards, next_states, terminateds, truncateds = data["states"], data["actions"], data["action_probs"], data["rewards"], data["next_states"], data["terminated"], data["truncated"]
     target_action_probs = actor(states).gather(-1, actions).squeeze(-1).detach()
     
-    importance_sampling_ratios = target_action_probs / (behavior_action_probs + epsilon)
+    importance_sampling_ratios = torch.exp(target_action_probs - behavior_action_probs)
     
     metrics['min_importance_sampling_ratio'] = importance_sampling_ratios.min().item()
     metrics['max_importance_sampling_ratio'] = importance_sampling_ratios.max().item()
