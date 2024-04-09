@@ -31,6 +31,9 @@ def train(
     metrics['max_importance_sampling_ratio'] = importance_sampling_ratios.max().item()
     metrics['avg_importance_sampling_ratio'] = importance_sampling_ratios.mean().item()
 
+    clipped_rho = torch.clamp(importance_sampling_ratios, max=clip_rho_threshold)
+    clipped_c = torch.clamp(importance_sampling_ratios, max=clip_c_threshold)
+
     for i in range(num_train):
         start_forward_time = time.time()
         
@@ -51,9 +54,8 @@ def train(
             values,
             next_values,
             actions,
-            importance_sampling_ratios,
-            clip_rho_threshold,
-            clip_c_threshold,
+            clipped_rho,
+            clipped_c,
             gamma,
             epsilon,
         )
@@ -67,7 +69,7 @@ def train(
         critic_optimizer.step()
 
         # Actor update
-        actor_loss = -(log_probs * advantages.detach()).mean() - entropy_weight * entropy
+        actor_loss = -(clipped_rho.detach() * log_probs * advantages.detach()).mean() - entropy_weight * entropy
         actor_loss.backward()
         torch.nn.utils.clip_grad_norm_(actor.parameters(), max_norm=actor_network_max_norm)
         actor_optimizer.step()
@@ -97,9 +99,8 @@ def get_vtrace_and_advantages(
     values,
     next_values,
     actions,
-    importance_sampling_ratios,
-    clip_rho_threshold,
-    clip_c_threshold,
+    clipped_rho,
+    clipped_c,
     gamma,
     epsilon,
 ):
@@ -110,33 +111,13 @@ def get_vtrace_and_advantages(
 
     next_vtrace = next_values[:, -1]
 
-    clip_rho_threshold = torch.tensor(clip_rho_threshold).to(rewards.device)
-    clip_c_threshold = torch.tensor(clip_c_threshold).to(rewards.device)
 
     for t in reversed(range(T)):
         next_vtrace = torch.where(truncateds[:, t], next_values[:, t], next_vtrace)
-
-        rho = torch.min(
-            importance_sampling_ratios[:,t],
-            clip_rho_threshold,
-        )
-        c = torch.min(
-            importance_sampling_ratios[:,t],
-            clip_c_threshold,
-        )
-        delta = rho * (
-            rewards[:, t]
-            + gamma * next_values[:, t] * (1 - terminateds[:, t])
-            - values[:, t]
-        )
-        vtraces[:, t] = (
-            values[:, t]
-            + delta
-            + gamma * c * (next_vtrace - next_values[:, t]) * (1 - terminateds[:, t])
-        )
-        advantages[:, t] = (
-            rewards[:, t] + gamma * next_vtrace * (1 - terminateds[:, t]) - values[:, t]
-        )
+        delta = clipped_rho[:,t] * (rewards[:, t] + gamma * next_values[:, t] * (1 - terminateds[:, t]) - values[:, t])
+        vtraces[:, t] = values[:, t] + delta + gamma * clipped_c[:,t] * (next_vtrace - next_values[:, t]) * (1 - terminateds[:, t])
+        
+        advantages[:, t] = rewards[:, t] + gamma * next_vtrace * (1 - terminateds[:, t]) - values[:, t]
 
         next_vtrace = vtraces[:, t]
 
