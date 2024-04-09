@@ -31,8 +31,8 @@ def train(
     metrics['max_importance_sampling_ratio'] = importance_sampling_ratios.max().item()
     metrics['avg_importance_sampling_ratio'] = importance_sampling_ratios.mean().item()
 
-    clipped_rho = torch.clamp(importance_sampling_ratios, max=clip_rho_threshold)
-    clipped_c = torch.clamp(importance_sampling_ratios, max=clip_c_threshold)
+    clipped_rho = torch.clamp(importance_sampling_ratios, min=clip_rho_threshold)
+    clipped_c = torch.clamp(importance_sampling_ratios, min=clip_c_threshold)
 
     for i in range(num_train):
         start_forward_time = time.time()
@@ -62,7 +62,7 @@ def train(
 
         start_backward_time = time.time()
         
-        critic_loss = F.mse_loss(values, returns.detach())
+        critic_loss = 0.25 * F.mse_loss(values, returns.detach())
         critic_optimizer.zero_grad()
         critic_loss.backward()
         torch.nn.utils.clip_grad_norm_(critic.parameters(), max_norm=critic_network_max_norm)

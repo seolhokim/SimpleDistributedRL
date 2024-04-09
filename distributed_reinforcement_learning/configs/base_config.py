@@ -1,17 +1,17 @@
 class ActorNetworkConfig:
     hidden_dim = 128
     learning_rate = 1e-3
-    step_size = 50
-    gamma = 0.9
-    max_norm = 0.1
+    step_size = 300
+    gamma = 0.95
+    max_norm = 40.
 
 
 class CriticNetworkConfig:
     hidden_dim = 128
     learning_rate = 1e-3
-    step_size = 50
-    gamma = 0.9
-    max_norm = 0.1
+    step_size = 300
+    gamma = 0.95
+    max_norm = 40.
 
 
 class EnvironmentConfig:
@@ -41,7 +41,7 @@ class ImpalaConfig:
     clip_c_threshold = 1.0
     gamma = 0.99
     entropy_weight = 0.01
-    epsilon = 1e-6
+    epsilon = 1e-3
 
 
 class Config:
