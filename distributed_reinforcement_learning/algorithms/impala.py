@@ -18,6 +18,7 @@ def train(
     actor_network_max_norm,
     critic_network_max_norm,
     entropy_weight,
+    baseline_loss_scaling,
     epsilon,
 ):
     """impala algorithm to train ActorNetwork and CriticNetwork"""
@@ -25,14 +26,14 @@ def train(
     states, actions, behavior_action_probs, rewards, next_states, terminateds, truncateds = data["states"], data["actions"], data["action_probs"], data["rewards"], data["next_states"], data["terminated"], data["truncated"]
     target_action_probs = actor(states).gather(-1, actions).squeeze(-1).detach()
     
-    importance_sampling_ratios = torch.exp(target_action_probs - behavior_action_probs)
+    importance_sampling_ratios = target_action_probs / (behavior_action_probs + epsilon)
     
     metrics['min_importance_sampling_ratio'] = importance_sampling_ratios.min().item()
     metrics['max_importance_sampling_ratio'] = importance_sampling_ratios.max().item()
     metrics['avg_importance_sampling_ratio'] = importance_sampling_ratios.mean().item()
 
-    clipped_rho = torch.clamp(importance_sampling_ratios, min=clip_rho_threshold)
-    clipped_c = torch.clamp(importance_sampling_ratios, min=clip_c_threshold)
+    clipped_rho = torch.clamp(importance_sampling_ratios, max=clip_rho_threshold)
+    clipped_c = torch.clamp(importance_sampling_ratios, max=clip_c_threshold)
 
     for i in range(num_train):
         start_forward_time = time.time()
@@ -62,7 +63,7 @@ def train(
 
         start_backward_time = time.time()
         
-        critic_loss = 0.25 * F.mse_loss(values, returns.detach())
+        critic_loss = baseline_loss_scaling * F.mse_loss(values, returns.detach())
         critic_optimizer.zero_grad()
         critic_loss.backward()
         torch.nn.utils.clip_grad_norm_(critic.parameters(), max_norm=critic_network_max_norm)
@@ -87,7 +88,6 @@ def train(
     for key in ['critic_loss', 'actor_loss', 'entropy', 'forward_time', 'backward_time']:
         metrics[key] /= num_train
     
-
     metrics['onestep_training_time'] = time.time() - start_onestep_training_time
 
     return metrics

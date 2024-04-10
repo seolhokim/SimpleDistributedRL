@@ -70,7 +70,7 @@ class Learner(mp.Process):
             actor_network_max_norm=self.config.actor_network.max_norm,
             critic_network_max_norm=self.config.critic_network.max_norm,
             entropy_weight=self.config.impala.entropy_weight,
-            baseline_loss_scaling = self.config.baseline_loss_scaling,
+            baseline_loss_scaling = self.config.training.baseline_loss_scaling,
             epsilon=self.config.impala.epsilon,
         )
 
