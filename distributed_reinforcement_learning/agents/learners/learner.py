@@ -85,10 +85,11 @@ class Learner(mp.Process):
             if not self.data_queue.empty():
                 data_fetch_start_time = time.time()
                 data = self.data_queue.get()
-                data, data_batch_time, buffer_fps = data
+                data, data_batch_time, buffer_fps, manager_weight_get_time = data
                 metrics['data_fetch_time'] = time.time() - data_fetch_start_time
                 metrics['data_batch_time'] = data_batch_time
                 metrics['buffer_fps'] = buffer_fps
+                metrics['manager_weight_get_time'] = manager_weight_get_time
                 return data, metrics
         return None, None #data, metrics
 

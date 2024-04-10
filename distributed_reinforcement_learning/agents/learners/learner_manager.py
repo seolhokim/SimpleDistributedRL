@@ -14,6 +14,7 @@ class LearnerManager:
         self.config = config
         self.weight = init_weight
 
+        self.weight_get_time = 0
         self.replay_buffer_lock = mp.Lock()
         self.ports = ports
         self.init_time = time.time()
@@ -65,14 +66,16 @@ class LearnerManager:
         """Sending the latest weights"""
         with self.weight_lock:
             if not self.weight_queue.empty():
+                weight_get_start_time = time.time()
                 self.weight = self.weight_queue.get()
+                self.weight_get_time = time.time() - weight_get_start_time
             client_socket.sendall(pickle.dumps(self.weight))
 
     def try_put_data_queue(self, data, batch_start_time, buffer_fps):
         """Try putting sampled data into the data queue"""
         with self.data_queue_lock:
             if self.data_queue.qsize() < self.config.training.max_queue_length:
-                self.data_queue.put((data, time.time()-batch_start_time, buffer_fps))
+                self.data_queue.put((data, time.time()-batch_start_time, buffer_fps, self.weight_get_time))
 
     def start(self):
         """Entry point"""
