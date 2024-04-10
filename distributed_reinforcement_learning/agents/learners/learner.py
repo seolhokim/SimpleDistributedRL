@@ -36,6 +36,8 @@ class Learner(mp.Process):
         self.critic_network = critic_network.to(self.device)
         self.actor_network_optimizer = optim.Adam(self.actor_network.parameters(), lr=self.config.actor_network.learning_rate)
         self.critic_network_optimizer = optim.Adam(self.critic_network.parameters(), lr=self.config.critic_network.learning_rate)
+        #self.actor_network_optimizer = optim.RMSprop(self.actor_network.parameters(), lr=1e-3, momentum=0.0, eps=0.01)
+        #self.critic_network_optimizer = optim.RMSprop(self.actor_network.parameters(), lr=1e-3, momentum=0.0, eps=0.01)
         self.setup_schedulers()
 
     def setup_schedulers(self):
@@ -83,9 +85,10 @@ class Learner(mp.Process):
             if not self.data_queue.empty():
                 data_fetch_start_time = time.time()
                 data = self.data_queue.get()
-                data, data_batch_time = data
+                data, data_batch_time, buffer_fps = data
                 metrics['data_fetch_time'] = time.time() - data_fetch_start_time
                 metrics['data_batch_time'] = data_batch_time
+                metrics['buffer_fps'] = buffer_fps
                 return data, metrics
         return None, None #data, metrics
 
