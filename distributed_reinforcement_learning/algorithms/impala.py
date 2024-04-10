@@ -25,8 +25,8 @@ def train(
     start_onestep_training_time = time.time()
     states, actions, behavior_action_probs, rewards, next_states, terminateds, truncateds = data["states"], data["actions"], data["action_probs"], data["rewards"], data["next_states"], data["terminated"], data["truncated"]
     target_action_probs = actor(states).gather(-1, actions).squeeze(-1).detach()
-    
-    importance_sampling_ratios = torch.exp(torch.log(target_action_probs) - torch.log(behavior_action_probs))
+
+    importance_sampling_ratios = torch.exp(torch.log(target_action_probs) - torch.log(behavior_action_probs)).detach()
     
     metrics['min_importance_sampling_ratio'] = importance_sampling_ratios.min().item()
     metrics['max_importance_sampling_ratio'] = importance_sampling_ratios.max().item()
@@ -39,16 +39,16 @@ def train(
         start_forward_time = time.time()
         
         # Critic and actor values
-        values = critic(states).squeeze()
-        next_values = critic(next_states).squeeze()
+        values = critic(states).squeeze(-1)
+        next_values = critic(next_states).squeeze(-1) 
         dists = torch.distributions.Categorical(probs=actor(states))
-        log_probs = dists.log_prob(actions.squeeze())
+        log_probs = dists.log_prob(actions.squeeze()) 
         entropy = dists.entropy().mean()
 
         metrics['forward_time'] += time.time() - start_forward_time
 
         # vtrace corrections and critic update
-        returns, advantages = get_vtrace_and_advantages(
+        vtraces, advantages = get_vtrace_and_advantages(
             rewards,
             terminateds,
             truncateds,
@@ -63,14 +63,14 @@ def train(
 
         start_backward_time = time.time()
         
-        critic_loss = baseline_loss_scaling * F.mse_loss(values, returns.detach())
+        critic_loss = baseline_loss_scaling * F.mse_loss(values, vtraces.detach())
         critic_optimizer.zero_grad()
         critic_loss.backward()
         torch.nn.utils.clip_grad_norm_(critic.parameters(), max_norm=critic_network_max_norm)
         critic_optimizer.step()
 
         # Actor update
-        actor_loss = -(clipped_rho.detach() * log_probs * advantages.detach()).mean() - entropy_weight * entropy
+        actor_loss = -(clipped_rho * log_probs * advantages.detach()).mean() - entropy_weight * entropy
         actor_optimizer.zero_grad()
         actor_loss.backward()
         torch.nn.utils.clip_grad_norm_(actor.parameters(), max_norm=actor_network_max_norm)
@@ -80,6 +80,9 @@ def train(
         critic_lr_scheduler.step()
 
         metrics['backward_time'] += time.time() - start_backward_time
+        metrics['vtraces'] += vtraces.mean().cpu().item()
+        metrics['values'] += values.mean().cpu().item()
+        metrics['advantages'] += advantages.mean().cpu().item()
         metrics['critic_loss'] += critic_loss.item()
         metrics['actor_loss'] += actor_loss.item()
         metrics['entropy'] += entropy.item()
