@@ -59,7 +59,7 @@ class LearnerManager:
                 buffer_fps = self.replay_buffer.buffer_index / (time.time() - self.init_time)
                 batch_start_time = time.time()
                 data = self.replay_buffer.sample(self.config.training.batch_size)
-                self.try_put_data_queue(data, batch_start_time, buffer_fps)
+                self.try_put_data_queue(data, batch_start_time, buffer_fps * self.config.training.unroll_length)
 
     def send_weight(self, client_socket):
         """Sending the latest weights"""

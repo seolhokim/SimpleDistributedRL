@@ -77,8 +77,8 @@ class Actor(mp.Process):
     def send_data(self):
         """Sends the collected data"""
         data_sending_start_time = time.time()
-        data = pickle.dumps(("data", self.actor_buffer)) #non-blocking test
-        self.conn.sendall(data)
+        data = pickle.dumps(("data", self.actor_buffer)) 
+        self.conn.sendall(data) 
         return time.time() - data_sending_start_time
 
     def request_weight(self):
