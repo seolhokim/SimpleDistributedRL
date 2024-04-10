@@ -64,7 +64,7 @@ class Actor(mp.Process):
         self.actor_buffer["state"][buffer_idx] = state
         self.actor_buffer["action"][buffer_idx] = action
         self.actor_buffer["action_prob"][buffer_idx] = action_prob
-        self.actor_buffer["reward"][buffer_idx] = reward
+        self.actor_buffer["reward"][buffer_idx] = reward * self.config.training.reward_scaling
         self.actor_buffer["next_state"][buffer_idx] = next_state
         self.actor_buffer["terminated"][buffer_idx] = terminated
         self.actor_buffer["truncated"][buffer_idx] = truncated
