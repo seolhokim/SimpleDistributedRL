@@ -70,6 +70,7 @@ def train(
 
         # Actor update
         actor_loss = -(clipped_rho.detach() * log_probs * advantages.detach()).mean() - entropy_weight * entropy
+        actor_optimizer.zero_grad()
         actor_loss.backward()
         torch.nn.utils.clip_grad_norm_(actor.parameters(), max_norm=actor_network_max_norm)
         actor_optimizer.step()
