@@ -74,8 +74,8 @@ def train(
         torch.nn.utils.clip_grad_norm_(actor.parameters(), max_norm=actor_network_max_norm)
         actor_optimizer.step()
 
-        #actor_lr_scheduler.step()
-        #critic_lr_scheduler.step()
+        actor_lr_scheduler.step()
+        critic_lr_scheduler.step()
 
         metrics['backward_time'] += time.time() - start_backward_time
         metrics['vtraces'] += vtraces.mean().cpu().item()
@@ -111,11 +111,11 @@ def get_vtrace_and_advantages(
     advantages = torch.zeros_like(rewards, device=rewards.device)
 
     next_vtrace = next_values[:, -1]
-
+    delta = clipped_rho * (rewards + gamma * next_values * (1 - terminateds) - values)
+    
     for t in reversed(range(T)):
         next_vtrace = torch.where(truncateds[:, t], next_values[:, t], next_vtrace)
-        delta = clipped_rho[:,t] * (rewards[:, t] + gamma * next_values[:, t] * (1 - terminateds[:, t]) - values[:, t])
-        vtraces[:, t] = values[:, t] + delta + gamma * clipped_c[:,t] * (next_vtrace - next_values[:, t]) * (1 - terminateds[:, t])
+        vtraces[:, t] = values[:, t] + delta[:,t] + gamma * clipped_c[:,t] * (next_vtrace - next_values[:, t]) * (1 - terminateds[:, t])
         advantages[:, t] = rewards[:, t] + gamma * next_vtrace * (1 - terminateds[:, t]) - values[:, t]
 
         next_vtrace = vtraces[:, t]

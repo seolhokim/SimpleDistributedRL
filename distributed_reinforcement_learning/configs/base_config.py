@@ -26,7 +26,7 @@ class TrainingConfig:
     unroll_length = 100
     update_interval = 0.2
     bufsize = 8192
-    num_interaction_episodes = 10000
+    num_interaction_episodes = 1000
     buffer_capacity = 1000
     batch_size = 16
     num_actors = 4
