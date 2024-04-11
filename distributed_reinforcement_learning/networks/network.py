@@ -6,12 +6,10 @@ class ActorNetwork(nn.Module):
     def __init__(self, config):
         super(ActorNetwork, self).__init__()
         self.network = nn.Sequential(
-            nn.Linear(
-                config.environment.state_shape[0], config.actor_network.hidden_dim
-            ),
+            nn.Linear(config.environment.state_shape[0], config.actor_network.hidden_dim),
             nn.ReLU(),
             nn.Linear(config.actor_network.hidden_dim, config.environment.n_action),
-            nn.Softmax(dim=-1),
+            nn.Softmax(dim=-1)
         )
 
     def forward(self, state):
@@ -30,11 +28,9 @@ class CriticNetwork(nn.Module):
     def __init__(self, config):
         super(CriticNetwork, self).__init__()
         self.network = nn.Sequential(
-            nn.Linear(
-                config.environment.state_shape[0], config.critic_network.hidden_dim
-            ),
+            nn.Linear(config.environment.state_shape[0], config.critic_network.hidden_dim),
             nn.ReLU(),
-            nn.Linear(config.critic_network.hidden_dim, 1),
+            nn.Linear(config.critic_network.hidden_dim, 1)
         )
 
     def forward(self, state):
